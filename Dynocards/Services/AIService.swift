@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct WordDefinition {
+struct WordDefinition: Equatable {
     let word: String
     let definition: String
     let shortDefinition: String
@@ -17,6 +17,18 @@ struct WordDefinition {
     let audioURL: String?
     let cefrLevel: String?
     let tags: [String]?
+    
+    static func == (lhs: WordDefinition, rhs: WordDefinition) -> Bool {
+        return lhs.word == rhs.word &&
+               lhs.definition == rhs.definition &&
+               lhs.shortDefinition == rhs.shortDefinition &&
+               lhs.translation == rhs.translation &&
+               lhs.example == rhs.example &&
+               lhs.phonetics == rhs.phonetics &&
+               lhs.audioURL == rhs.audioURL &&
+               lhs.cefrLevel == rhs.cefrLevel &&
+               lhs.tags == rhs.tags
+    }
 }
 
 enum ExamQuestionType {

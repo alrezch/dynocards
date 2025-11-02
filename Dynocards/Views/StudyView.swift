@@ -32,6 +32,7 @@ struct StudyView: View {
     @State private var selectedAnswerIndex: Int? = nil
     @State private var correctAnswerShown = false
     @State private var examStartTime: Date? = nil
+    @State private var selectedReviewTags: Set<String> = [] // For tag-based review (multiple tags)
     
     // Simple encouraging messages
     private let encouragingMessages = [
@@ -124,16 +125,17 @@ struct StudyView: View {
     private func spacedRepetitionView(geometry: GeometryProxy) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Header
-                spacedRepetitionHeaderView
-                    .padding(.bottom, 16)
-                
-                // Study Mode Selector
+                // Study Mode Selector (moved to top, no header)
                 studyModeSelector
-                    .padding(.bottom, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
                 
                 // Calendar Section with embedded buttons
                 calendarSectionWithButtons
+                    .padding(.bottom, 20)
+                
+                // Mastery Progress Card
+                masteryProgressCard
                     .padding(.bottom, 20)
                 
                 // Upcoming Days (scrollable)
@@ -149,13 +151,14 @@ struct StudyView: View {
     private func reviewModeView(geometry: GeometryProxy) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Header
-                reviewModeHeaderView
-                    .padding(.bottom, 16)
-                
-                // Study Mode Selector
+                // Study Mode Selector (moved to top, no header)
                 studyModeSelector
-                    .padding(.bottom, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
+                
+                // Tag Selector Section
+                tagSelectorSection
+                    .padding(.bottom, 20)
                 
                 // Review Statistics with embedded button
                 reviewStatisticsSectionWithButton
@@ -173,13 +176,10 @@ struct StudyView: View {
     private func examModeView(geometry: GeometryProxy) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Header
-                examModeHeaderView
-                    .padding(.bottom, 16)
-                
-                // Study Mode Selector
+                // Study Mode Selector (moved to top, no header)
                 studyModeSelector
-                    .padding(.bottom, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
                 
                 // Exam Configuration
                 examConfigurationSection
@@ -292,6 +292,110 @@ struct StudyView: View {
         .padding(.bottom, 20)
     }
     
+    private var tagSelectorSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Filter by Tag")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if !selectedReviewTags.isEmpty {
+                    Button(action: {
+                        selectedReviewTags = []
+                    }) {
+                        Text("Clear All")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+            
+            Text("Review all words or select one or more tags to review")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    // "All Words" option
+                    Button(action: {
+                        selectedReviewTags = []
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: selectedReviewTags.isEmpty ? "checkmark.circle.fill" : "circle")
+                                .font(.caption)
+                            Text("All Words")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(selectedReviewTags.isEmpty ? .white : .primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(selectedReviewTags.isEmpty ? Color.green : Color(.systemGray6))
+                        )
+                    }
+                    
+                    // Tag options
+                    ForEach(getAllTags(), id: \.self) { tag in
+                        Button(action: {
+                            if selectedReviewTags.contains(tag) {
+                                selectedReviewTags.remove(tag)
+                            } else {
+                                selectedReviewTags.insert(tag)
+                            }
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: selectedReviewTags.contains(tag) ? "checkmark.circle.fill" : "tag.fill")
+                                    .font(.caption)
+                                Text(tag)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(selectedReviewTags.contains(tag) ? .white : .primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(selectedReviewTags.contains(tag) ? Color.green : Color(.systemGray6))
+                            )
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            
+            // Show count of words with selected tags
+            if !selectedReviewTags.isEmpty {
+                let count = getWordsCountForTags(selectedReviewTags)
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    if selectedReviewTags.count == 1 {
+                        Text("\(count) word\(count == 1 ? "" : "s") in \"\(selectedReviewTags.first!)\" tag")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("\(count) word\(count == 1 ? "" : "s") across \(selectedReviewTags.count) tag\(selectedReviewTags.count == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+        )
+    }
+    
     private var reviewModeHeaderView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -312,46 +416,54 @@ struct StudyView: View {
     }
     
     private var studyModeSelector: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Study Mode")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-            }
+        // Modern segmented control style - matches width of other containers
+        ZStack {
+            // Background container - matches other cards
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemGray6))
             
-            HStack(spacing: 12) {
+            // Animated selection indicator (sliding background)
+            GeometryReader { geometry in
+                let tabWidth = geometry.size.width / CGFloat(StudyMode.allCases.count)
+                let selectedIndex = CGFloat(StudyMode.allCases.firstIndex(of: selectedMode) ?? 0)
+                
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(selectedMode.color)
+                    .frame(width: tabWidth - 4, height: 66)
+                    .offset(x: selectedIndex * tabWidth + 2, y: 2)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedMode)
+            }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
+            
+            // Buttons on top
+            HStack(spacing: 0) {
                 ForEach(StudyMode.allCases, id: \.self) { mode in
                     Button(action: {
-                        selectedMode = mode
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedMode = mode
+                        }
                     }) {
-                        HStack(spacing: 8) {
+                        // Content with white text when selected
+                        VStack(spacing: 6) {
                             Image(systemName: mode.icon)
-                                .font(.title3)
+                                .font(.system(size: 18, weight: .semibold))
                             
                             Text(mode.rawValue)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                                .font(.system(size: 11, weight: .medium))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
                         .foregroundColor(selectedMode == mode ? .white : mode.color)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(selectedMode == mode ? mode.color : mode.color.opacity(0.1))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(mode.color.opacity(0.3), lineWidth: selectedMode == mode ? 0 : 1)
-                        )
+                        .frame(height: 70)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
         }
-        .padding(.bottom, 20)
+        .frame(height: 70)
     }
     
     private var calendarSection: some View {
@@ -621,23 +733,72 @@ struct StudyView: View {
                 }
             }
             
-            // Action Button
-            Button(action: {
-                startFocusedStudySession()
-            }) {
-                HStack {
-                    Image(systemName: "book.fill")
-                        .font(.system(size: 16, weight: .medium))
-                    Text(getStudyButtonText())
-                        .font(.system(size: 16, weight: .medium))
+            // Action Button with guidance
+            if let todayData = calendarData.first {
+                if todayData.dueCards > 0 {
+                    // Enable button when words are due
+                    Button(action: {
+                        startFocusedStudySession()
+                    }) {
+                        HStack {
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            Text(getStudyButtonText())
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.blue)
+                        )
+                    }
+                } else {
+                    // Disabled state with guidance
+                    VStack(spacing: 12) {
+                        Button(action: {}) {
+                            HStack {
+                                Image(systemName: "book.fill")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("Study Now")
+                                    .font(.system(size: 16, weight: .medium))
+                            }
+                            .foregroundColor(.white.opacity(0.6))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.gray.opacity(0.3))
+                            )
+                        }
+                        .disabled(true)
+                        
+                        // Guidance message
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.subheadline)
+                                Text("No words due today")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            Text("Practice your words in Review Mode or test yourself with an Exam")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                    }
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue)
-                )
             }
         }
         .padding(16)
@@ -812,6 +973,80 @@ struct StudyView: View {
         }
     }
     
+    private var masteryProgressCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mastery Progress")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Words mastered in spaced repetition")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(spacing: 4) {
+                    Text("\(getMasteredWordsCount())")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                    
+                    Text("mastered")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Progress bar
+            let masteryPercentage = getMasteryPercentage()
+            VStack(spacing: 8) {
+                HStack {
+                    Text("\(Int(masteryPercentage * 100))%")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Text("\(getMasteredWordsCount())/\(getTotalWordsCount())")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+                
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(.systemGray5))
+                            .frame(height: 8)
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.green, .mint],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * masteryPercentage, height: 8)
+                            .animation(.easeInOut(duration: 0.3), value: masteryPercentage)
+                    }
+                }
+                .frame(height: 8)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+        )
+    }
+    
     private var reviewStatisticsSectionWithButton: some View {
         VStack(spacing: 12) {
             // Total Words Card
@@ -834,7 +1069,7 @@ struct StudyView: View {
                         Text("\(getTotalWordsCount())")
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(.blue)
+                            .foregroundColor(.green)
                         
                         Text("words")
                             .font(.caption)
@@ -849,90 +1084,43 @@ struct StudyView: View {
                     .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
             )
             
-            // Mastery Progress Card with Review Button
+            // Review Button Card
             VStack(spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Mastery Progress")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        Text("Words mastered in spaced repetition")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                // Show review button text based on selected tags
+                let reviewButtonText: String = {
+                    if selectedReviewTags.isEmpty {
+                        return "Start Review All Words"
+                    } else if selectedReviewTags.count == 1 {
+                        let tag = selectedReviewTags.first!
+                        let count = getWordsCountForTags(selectedReviewTags)
+                        return "Review \"\(tag)\" (\(count) words)"
+                    } else {
+                        let count = getWordsCountForTags(selectedReviewTags)
+                        return "Review \(selectedReviewTags.count) Tags (\(count) words)"
                     }
-                    
-                    Spacer()
-                    
-                    VStack(spacing: 4) {
-                        Text("\(getMasteredWordsCount())")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                        
-                        Text("mastered")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
+                }()
                 
-                // Progress bar
-                let masteryPercentage = getMasteryPercentage()
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("\(Int(masteryPercentage * 100))%")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                        
-                        Spacer()
-                        
-                        Text("\(getMasteredWordsCount())/\(getTotalWordsCount())")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(.systemGray5))
-                                .frame(height: 8)
-                            
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.green, .mint],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: geometry.size.width * masteryPercentage, height: 8)
-                                .animation(.easeInOut(duration: 0.3), value: masteryPercentage)
-                        }
-                    }
-                    .frame(height: 8)
-                }
-                
-                // Review Button
                 Button(action: {
                     startReviewMode()
                 }) {
                     HStack {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 16, weight: .medium))
-                        Text("Start Review")
+                        Text(reviewButtonText)
                             .font(.system(size: 16, weight: .medium))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                    .frame(height: selectedReviewTags.isEmpty ? 44 : 54)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.purple)
+                            .fill(Color.green)
                     )
                 }
+                .disabled(getReviewableWordsCount() == 0)
+                .opacity(getReviewableWordsCount() == 0 ? 0.6 : 1.0)
             }
             .padding(16)
             .background(
@@ -1338,27 +1526,16 @@ struct StudyView: View {
             
             Spacer()
             
-            // Progress
+            // Progress (simplified - only show count and progress bar)
             VStack(spacing: 6) {
                 let currentCard = min(studyViewModel.currentCardIndex + 1, studyViewModel.cardsToStudy.count)
                 let totalCards = max(studyViewModel.cardsToStudy.count, 1)
-                let remaining = max(0, studyViewModel.cardsToStudy.count - studyViewModel.currentCardIndex - 1)
                 
-                HStack(spacing: 8) {
-                    Text("\(currentCard) of \(totalCards)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
-                    
-                    Text("•")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("\(remaining) remaining")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.orange)
-                }
+                // Only show "X of Y" - removed "remaining"
+                Text("\(currentCard) of \(totalCards)")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
                 
                 // Progress bar
                 GeometryReader { geometry in
@@ -1370,7 +1547,7 @@ struct StudyView: View {
                         RoundedRectangle(cornerRadius: 2)
                             .fill(
                                 LinearGradient(
-                                    colors: [.blue, .purple],
+                                    colors: isInReviewMode ? [.green, .mint] : [.blue, .purple],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -1384,30 +1561,9 @@ struct StudyView: View {
             
             Spacer()
             
-            // Stats
-            HStack(spacing: 16) {
-                VStack(spacing: 2) {
-                    Text("\(studyViewModel.correctAnswers)")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
-                    
-                    Text("Correct")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                
-                VStack(spacing: 2) {
-                    Text("\(studyViewModel.totalAnswered)")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.blue)
-                    
-                    Text("Total")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
+            // Placeholder for balance (removed "Correct" and "Total" stats)
+            Color.clear
+                .frame(width: 30, height: 30)
         }
         .padding(.top, 10)
         .padding(.bottom, 20)
@@ -1796,6 +1952,44 @@ struct StudyView: View {
         return CoreDataManager.shared.fetchAllFlashcards().filter { $0.mastered }.count
     }
     
+    private func getAllTags() -> [String] {
+        let allFlashcards = CoreDataManager.shared.fetchAllFlashcards()
+        var uniqueTags = Set<String>()
+        
+        for flashcard in allFlashcards {
+            let tags = flashcard.tagList.filter { $0.lowercased() != "all words" }
+            uniqueTags.formUnion(tags)
+        }
+        
+        return Array(uniqueTags).sorted()
+    }
+    
+    private func getWordsCountForTag(_ tag: String) -> Int {
+        let allFlashcards = CoreDataManager.shared.fetchAllFlashcards()
+        return allFlashcards.filter { flashcard in
+            flashcard.tagList.contains(tag)
+        }.count
+    }
+    
+    private func getWordsCountForTags(_ tags: Set<String>) -> Int {
+        guard !tags.isEmpty else { return getTotalWordsCount() }
+        
+        let allFlashcards = CoreDataManager.shared.fetchAllFlashcards()
+        let tagSet = Set(tags)
+        return allFlashcards.filter { flashcard in
+            // Include flashcard if it has any of the selected tags
+            let flashcardTagSet = Set(flashcard.tagList)
+            return !flashcardTagSet.intersection(tagSet).isEmpty
+        }.count
+    }
+    
+    private func getReviewableWordsCount() -> Int {
+        if selectedReviewTags.isEmpty {
+            return getTotalWordsCount()
+        }
+        return getWordsCountForTags(selectedReviewTags)
+    }
+    
     private func getMasteryPercentage() -> Double {
         let total = getTotalWordsCount()
         guard total > 0 else { return 0 }
@@ -1824,8 +2018,9 @@ struct StudyView: View {
     }
     
     private func startReviewMode() {
-        // Load all cards for review (not just due cards)
-        studyViewModel.loadAllCardsForReview() // This sets isReviewMode = true internally
+        // Load cards for review (filtered by tags if selected)
+        let tagsArray = selectedReviewTags.isEmpty ? nil : Array(selectedReviewTags)
+        studyViewModel.loadAllCardsForReview(filteredByTags: tagsArray) // This sets isReviewMode = true internally
         isInReviewMode = true // Keep for UI state
         withAnimation(.easeInOut(duration: 0.5)) {
             isInStudyMode = true

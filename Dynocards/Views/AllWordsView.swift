@@ -51,7 +51,6 @@ struct AllWordsView: View {
                     .foregroundColor(.secondary)
                 
                 TextField("Search words...", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
                 
                 if !searchText.isEmpty {
                     Button(action: {

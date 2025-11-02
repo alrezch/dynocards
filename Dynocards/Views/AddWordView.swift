@@ -134,10 +134,8 @@ struct AddWordView: View {
             TextField("Type a word to learn...", text: $inputWord)
                 .font(.title2)
                 .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.systemGray6))
-                )
+                .background(Color(.systemGray6))
+                .cornerRadius(16)
                 .onSubmit {
                     generateFlashcard()
                 }
@@ -651,6 +649,8 @@ struct AddWordView: View {
                                 TextField("Tag", text: $editingTagText)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                    .tint(.primary)
                                     .frame(width: 100)
                                     .onSubmit {
                                         if !editingTagText.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -682,6 +682,8 @@ struct AddWordView: View {
                             TextField("New tag", text: $newTagText)
                                 .textFieldStyle(.roundedBorder)
                                 .font(.subheadline)
+                                .foregroundColor(.primary)
+                                .tint(.primary)
                                 .frame(width: 100)
                                 .onSubmit {
                                     addNewTag()

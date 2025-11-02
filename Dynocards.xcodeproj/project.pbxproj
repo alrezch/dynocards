@@ -36,6 +36,7 @@
 		A27 /* ImageHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29 /* ImageHelper.swift */; };
 		A28 /* SocialShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30 /* SocialShareCardView.swift */; };
 		A29 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31 /* ShareSheet.swift */; };
+		A30 /* UIKitTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B32 /* UIKitTextField.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +72,7 @@
 		B29 /* ImageHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageHelper.swift; sourceTree = "<group>"; };
 		B30 /* SocialShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialShareCardView.swift; sourceTree = "<group>"; };
 		B31 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		B32 /* UIKitTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitTextField.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -173,6 +175,7 @@
 				B25 /* CelebrationView.swift */,
 				B29 /* ImageHelper.swift */,
 				B31 /* ShareSheet.swift */,
+				B32 /* UIKitTextField.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -274,6 +277,7 @@
 				A27 /* ImageHelper.swift in Sources */,
 				A28 /* SocialShareCardView.swift in Sources */,
 				A29 /* ShareSheet.swift in Sources */,
+				A30 /* UIKitTextField.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

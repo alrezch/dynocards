@@ -217,6 +217,7 @@ struct MainTabView: View {
                         Text("Add")
                     }
                     .tag(1)
+                    .id("addWordTab") // Ensure view identity
                 
                 // StudyView in TabView (shows calendar when not in study mode)
                 StudyView()

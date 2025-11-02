@@ -96,7 +96,6 @@ struct HomeView: View {
                     .foregroundColor(.secondary)
                 
                 TextField("Search collections, words...", text: $searchText)
-                    .textFieldStyle(PlainTextFieldStyle())
             }
             .padding()
             .background(Color(.systemGray6))

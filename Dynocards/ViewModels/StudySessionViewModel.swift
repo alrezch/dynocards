@@ -65,8 +65,20 @@ class StudySessionViewModel: ObservableObject {
         }
     }
     
-    func loadAllCardsForReview() {
-        dueCards = coreDataManager.fetchAllFlashcards()
+    func loadAllCardsForReview(filteredByTags: [String]? = nil) {
+        var allCards = coreDataManager.fetchAllFlashcards()
+        
+        // Filter by tags if provided
+        if let tags = filteredByTags, !tags.isEmpty {
+            let tagSet = Set(tags)
+            allCards = allCards.filter { flashcard in
+                // Include flashcard if it has any of the selected tags
+                let flashcardTagSet = Set(flashcard.tagList)
+                return !flashcardTagSet.intersection(tagSet).isEmpty
+            }
+        }
+        
+        dueCards = allCards
         cardsToStudy = dueCards
         sessionStats.totalCards = dueCards.count
         isReviewMode = true // Mark as review mode

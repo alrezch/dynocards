@@ -1249,26 +1249,32 @@ struct EditProfileView: View {
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal, 4)
                             
-                            TextField("Enter your name", text: $editedName)
-                                .textFieldStyle(.plain)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                                .padding(16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(.systemGray6))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(isNameFieldFocused ? Color.blue : Color(.systemGray4), lineWidth: isNameFieldFocused ? 2 : 1)
-                                )
-                                .focused($isNameFieldFocused)
-                                .textInputAutocapitalization(.words)
-                                .autocorrectionDisabled(false)
-                                .submitLabel(.done)
-                                .onSubmit {
-                                    isNameFieldFocused = false
+                            TextField("Enter your name", text: Binding(
+                                get: { editedName },
+                                set: { newValue in
+                                    print("🔍 SET editedName from '\(editedName)' to '\(newValue)'")
+                                    editedName = newValue
+                                    print("🔍 editedName is now: '\(editedName)'")
                                 }
+                            ))
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .tint(.primary)
+                            .padding(16)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(isNameFieldFocused ? Color.blue : Color(.systemGray4), lineWidth: isNameFieldFocused ? 2 : 1)
+                                    .allowsHitTesting(false)
+                            )
+                            .focused($isNameFieldFocused)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled(false)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                isNameFieldFocused = false
+                            }
                         }
                         .padding(.horizontal, 20)
                     }
@@ -1310,7 +1316,9 @@ struct EditProfileView: View {
                 }
             }
             .onAppear {
-                // Initialize editedName with current user name
+                // Initialize editedName with current user name - ONLY if still empty (user hasn't typed)
+                guard editedName.isEmpty else { return }
+                
                 if let userName = user?.name, !userName.isEmpty {
                     editedName = userName
                 } else {
@@ -1318,7 +1326,7 @@ struct EditProfileView: View {
                 }
                 
                 // Load existing profile image if available
-                if let user = user, let profileImage = user.profileImage {
+                if selectedImage == nil, let user = user, let profileImage = user.profileImage {
                     selectedImage = profileImage
                 }
             }

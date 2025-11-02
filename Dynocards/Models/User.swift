@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import UIKit
 
 @objc(User)
 public class User: NSManagedObject {
@@ -21,6 +22,7 @@ public class User: NSManagedObject {
     @NSManaged public var lastActiveDate: Date?
     @NSManaged public var notificationsEnabled: Bool
     @NSManaged public var studyReminderTime: Date?
+    @NSManaged public var profileImageData: Data?
     
     public override func awakeFromInsert() {
         super.awakeFromInsert()
@@ -45,5 +47,24 @@ public class User: NSManagedObject {
 extension User {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<User> {
         return NSFetchRequest<User>(entityName: "User")
+    }
+    
+    /// Returns profile image as UIImage if available
+    var profileImage: UIImage? {
+        guard let imageData = profileImageData else { return nil }
+        return UIImage(data: imageData)
+    }
+    
+    /// Sets profile image from UIImage
+    func setProfileImage(_ image: UIImage?) {
+        if let image = image {
+            // Resize image to save storage space (max 500x500)
+            if let resizedImage = image.resizeToMaxDimension(500),
+               let imageData = resizedImage.jpegData(compressionQuality: 0.8) {
+                profileImageData = imageData
+            }
+        } else {
+            profileImageData = nil
+        }
     }
 } 

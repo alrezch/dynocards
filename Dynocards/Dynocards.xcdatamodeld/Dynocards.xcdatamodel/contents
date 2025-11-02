@@ -30,6 +30,7 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="notificationsEnabled" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="preferredLanguage" optional="YES" attributeType="String"/>
+        <attribute name="profileImageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="sourceLanguage" optional="YES" attributeType="String"/>
         <attribute name="streakCount" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="studyReminderTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>

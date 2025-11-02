@@ -205,6 +205,9 @@ class StudySessionViewModel: ObservableObject {
             scheduleNextReviewNotifications()
         }
         
+        // Update badge count after study session
+        notificationService.updateBadgeCount()
+        
         // Achievement notifications
         // checkForAchievements()
         
@@ -248,11 +251,8 @@ class StudySessionViewModel: ObservableObject {
     }
     
     private func scheduleNextReviewNotifications() {
-        for card in dueCards {
-            if !card.mastered {
-                notificationService.scheduleReviewReminder(for: card)
-            }
-        }
+        // Use the optimized method from NotificationService
+        notificationService.scheduleReviewRemindersForDueCards()
     }
     
     private func scheduleAchievementNotification(for card: Flashcard) {

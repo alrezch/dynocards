@@ -44,6 +44,8 @@ struct HomeView: View {
             )
             .onAppear {
                 loadData()
+                // Update badge count when home view appears
+                NotificationService.shared.updateBadgeCount()
             }
         }
     }
@@ -104,47 +106,37 @@ struct HomeView: View {
     
     private var collectionsSection: some View {
         VStack(spacing: 16) {
-            // Main Collections Grid - 3 columns
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 12),
-                GridItem(.flexible(), spacing: 12),
-                GridItem(.flexible(), spacing: 12)
-            ], spacing: 12) {
-                CollectionCard(
+            // Enhanced Collection Cards - Full width for better readability
+            VStack(spacing: 16) {
+                // Active Words Card
+                CollectionCardEnhanced(
                     title: "Active Words",
                     count: coreDataManager.fetchFlashcards().filter { !$0.mastered }.count,
-                    gradient: LinearGradient(
-                        colors: [.mint.opacity(0.7), .cyan.opacity(0.5)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    icon: "book.fill",
+                    color: .mint,
                     destination: AnyView(AllCardsView())
                 )
                 
+                // Due Today Card
                 Button(action: {
                     // Navigate to Study tab using NotificationCenter
                     NotificationCenter.default.post(name: NSNotification.Name("NavigateToStudy"), object: nil)
                 }) {
-                    CollectionCardButton(
+                    CollectionCardEnhancedButton(
                         title: "Due Today",
                         count: dueCards.count,
-                        gradient: LinearGradient(
-                            colors: [.orange.opacity(0.7), .red.opacity(0.5)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        icon: "clock.fill",
+                        color: .orange
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                CollectionCard(
+                // All Words Card
+                CollectionCardEnhanced(
                     title: "All Words",
                     count: coreDataManager.fetchAllFlashcards().count,
-                    gradient: LinearGradient(
-                        colors: [.blue.opacity(0.7), .purple.opacity(0.5)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    icon: "list.bullet",
+                    color: .blue,
                     destination: AnyView(AllWordsView())
                 )
             }
@@ -283,6 +275,114 @@ struct CollectionCardButton: View {
         .background(gradient)
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+    }
+}
+
+struct CollectionCardEnhanced: View {
+    let title: String
+    let count: Int
+    let icon: String
+    let color: Color
+    let destination: AnyView
+    
+    var body: some View {
+        NavigationLink(destination: destination) {
+            HStack(spacing: 20) {
+                // Icon Container
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.2))
+                        .frame(width: 64, height: 64)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(color)
+                }
+                
+                // Content
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("\(count) words")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(color)
+                }
+                
+                Spacer()
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: color.opacity(0.15), radius: 8, x: 0, y: 4)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(color.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct CollectionCardEnhancedButton: View {
+    let title: String
+    let count: Int
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 20) {
+            // Icon Container
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                    .frame(width: 64, height: 64)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            
+            // Content
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Text("\(count) words")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(color)
+            }
+            
+            Spacer()
+            
+            // Chevron
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.secondary)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: color.opacity(0.15), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct ContentView: View {
     @State private var selectedTab = 0
@@ -16,7 +17,24 @@ struct ContentView: View {
             WelcomeView(showingWelcome: $showingWelcome)
         } else {
             MainTabView(selectedTab: $selectedTab, showingWelcome: $showingWelcome)
+                .onAppear {
+                    setupNotificationHandling()
+                }
         }
+    }
+    
+    private func setupNotificationHandling() {
+        // Set up notification delegate to handle when app opens from notification
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+        
+        // Handle notification if app was opened from one
+        NotificationDelegate.shared.handlePendingNotification()
+        
+        // Update badge count
+        NotificationService.shared.updateBadgeCount()
+        
+        // Clean up old notifications
+        NotificationService.shared.cleanupOldNotifications()
     }
 }
 
@@ -247,6 +265,57 @@ struct MainTabView: View {
                 StudyView()
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.3), value: isInStudyMode)
+            }
+        }
+    }
+}
+
+// MARK: - Notification Delegate
+
+class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationDelegate()
+    
+    override init() {
+        super.init()
+    }
+    
+    // Handle notification when app is in foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+        
+        // Update badge count
+        NotificationService.shared.updateBadgeCount()
+    }
+    
+    // Handle notification tap when app is in background or closed
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        let categoryIdentifier = response.notification.request.content.categoryIdentifier
+        
+        // Navigate based on notification type
+        switch categoryIdentifier {
+        case "STUDY_REMINDER", "DUE_CARDS", "REVIEW_REMINDER":
+            // Navigate to Study tab
+            NotificationCenter.default.post(name: NSNotification.Name("NavigateToStudy"), object: nil)
+        default:
+            break
+        }
+        
+        // Update badge count
+        NotificationService.shared.updateBadgeCount()
+        
+        completionHandler()
+    }
+    
+    // Handle notification if app was opened from one (on launch)
+    func handlePendingNotification() {
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            // If there are recent notifications, update badge and potentially navigate
+            if !notifications.isEmpty {
+                DispatchQueue.main.async {
+                    NotificationService.shared.updateBadgeCount()
+                }
             }
         }
     }

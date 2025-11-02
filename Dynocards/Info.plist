@@ -69,5 +69,11 @@
 	<string>Dynocards uses speech recognition to help you practice pronunciation.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Dynocards uses the microphone for speech recognition and pronunciation practice.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dynocards uses the camera to take your profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dynocards needs access to your photo library to select a profile picture.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Dynocards needs access to save photos to your library.</string>
 </dict>
 </plist> 

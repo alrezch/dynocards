@@ -32,6 +32,10 @@
 		A23 /* CelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B25 /* CelebrationView.swift */; };
 		A24 /* ExamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26 /* ExamSession.swift */; };
 		A25 /* AllWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27 /* AllWordsView.swift */; };
+		A26 /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28 /* ImagePickerView.swift */; };
+		A27 /* ImageHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29 /* ImageHelper.swift */; };
+		A28 /* SocialShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30 /* SocialShareCardView.swift */; };
+		A29 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31 /* ShareSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +67,10 @@
 		B25 /* CelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelebrationView.swift; sourceTree = "<group>"; };
 		B26 /* ExamSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamSession.swift; sourceTree = "<group>"; };
 		B27 /* AllWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllWordsView.swift; sourceTree = "<group>"; };
+		B28 /* ImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePickerView.swift; sourceTree = "<group>"; };
+		B29 /* ImageHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageHelper.swift; sourceTree = "<group>"; };
+		B30 /* SocialShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialShareCardView.swift; sourceTree = "<group>"; };
+		B31 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +139,8 @@
 				B22 /* ExportDataView.swift */,
 				B23 /* SubscriptionView.swift */,
 				B27 /* AllWordsView.swift */,
+				B28 /* ImagePickerView.swift */,
+				B30 /* SocialShareCardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -161,6 +171,8 @@
 				B15 /* Constants.swift */,
 				B20 /* SharedComponents.swift */,
 				B25 /* CelebrationView.swift */,
+				B29 /* ImageHelper.swift */,
+				B31 /* ShareSheet.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -258,6 +270,10 @@
 				A21 /* SubscriptionView.swift in Sources */,
 				A25 /* AllWordsView.swift in Sources */,
 				A23 /* CelebrationView.swift in Sources */,
+				A26 /* ImagePickerView.swift in Sources */,
+				A27 /* ImageHelper.swift in Sources */,
+				A28 /* SocialShareCardView.swift in Sources */,
+				A29 /* ShareSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

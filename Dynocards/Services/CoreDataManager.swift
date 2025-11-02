@@ -130,16 +130,17 @@ class CoreDataManager: ObservableObject {
         let endOfToday = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: today)) ?? today
         
         let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        // Changed: Include all cards with nextReview <= endOfToday (includes overdue cards)
+        // This ensures overdue cards accumulate and don't disappear
         request.predicate = NSPredicate(
-            format: "nextReview >= %@ AND nextReview < %@ AND mastered == false",
-            calendar.startOfDay(for: today) as NSDate,
+            format: "nextReview <= %@ AND mastered == false",
             endOfToday as NSDate
         )
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.nextReview, ascending: true)]
         
         do {
             let cards = try context.fetch(request)
-            print("🔍 Fetched \(cards.count) due cards for today")
+            print("🔍 Fetched \(cards.count) due cards (including overdue)")
             return cards
         } catch {
             print("Fetch due cards error: \(error)")
@@ -170,6 +171,55 @@ class CoreDataManager: ObservableObject {
     
     func fetchDueCardsCountForDate(_ date: Date) -> Int {
         return fetchDueCardsForDate(date).count
+    }
+    
+    // MARK: - Overdue Cards Methods
+    
+    /// Fetches all overdue cards (nextReview < today)
+    func fetchOverdueCards() -> [Flashcard] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "nextReview < %@ AND mastered == false",
+            today as NSDate
+        )
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.nextReview, ascending: true)]
+        
+        do {
+            let cards = try context.fetch(request)
+            print("🔍 Fetched \(cards.count) overdue cards")
+            return cards
+        } catch {
+            print("Fetch overdue cards error: \(error)")
+            return []
+        }
+    }
+    
+    /// Fetches cards due specifically today (not overdue)
+    func fetchDueTodayCards() -> [Flashcard] {
+        let calendar = Calendar.current
+        let today = Date()
+        let startOfToday = calendar.startOfDay(for: today)
+        let endOfToday = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? today
+        
+        let request: NSFetchRequest<Flashcard> = Flashcard.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "nextReview >= %@ AND nextReview < %@ AND mastered == false",
+            startOfToday as NSDate,
+            endOfToday as NSDate
+        )
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Flashcard.nextReview, ascending: true)]
+        
+        do {
+            let cards = try context.fetch(request)
+            print("🔍 Fetched \(cards.count) cards due today")
+            return cards
+        } catch {
+            print("Fetch due today cards error: \(error)")
+            return []
+        }
     }
     
     func fetchAllFlashcards() -> [Flashcard] {

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import PhotosUI
 
 struct SettingsView: View {
     @StateObject private var coreDataManager = CoreDataManager.shared
@@ -19,6 +20,9 @@ struct SettingsView: View {
     @State private var showingDataExport = false
     @State private var showingDeleteConfirmation = false
     @State private var showingAbout = false
+    @State private var showingEditProfile = false
+    @State private var showingSocialShare = false
+    @State private var editingName = ""
     
     // Settings
     @State private var notificationsEnabled = false
@@ -27,6 +31,7 @@ struct SettingsView: View {
     @State private var soundEnabled = true
     @State private var hapticEnabled = true
     @State private var autoPlayAudio = false
+    @State private var autoAdvanceCards = true
     
     var body: some View {
         NavigationView {
@@ -49,6 +54,9 @@ struct SettingsView: View {
                     
                     // Audio & Haptics Card
                     audioHapticsCard
+                    
+                    // Social Share Card
+                    socialShareCard
                     
                     // Data & Privacy Card
                     dataPrivacyCard
@@ -77,6 +85,8 @@ struct SettingsView: View {
         }
         .onAppear {
             loadUserData()
+        }
+        .onChange(of: user) { _ in
             loadSettings()
         }
         .sheet(isPresented: $showingSubscription) {
@@ -87,6 +97,15 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingAbout) {
             AboutView()
+        }
+        .sheet(isPresented: $showingEditProfile) {
+            EditProfileView(user: user, name: $editingName, onSave: {
+                // Refresh user data after profile is saved
+                loadUserData()
+            })
+        }
+        .sheet(isPresented: $showingSocialShare) {
+            SocialShareCardView()
         }
         .fullScreenCover(isPresented: $showingWelcome) {
             ContentView()
@@ -138,29 +157,50 @@ struct SettingsView: View {
     private var profileCard: some View {
         VStack(spacing: 16) {
             HStack {
-                // Profile Avatar
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                    
-                    Text((user?.name?.prefix(1))?.uppercased() ?? "U")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
+                // Profile Avatar - Force refresh by accessing profileImage directly
+                Group {
+                    if let user = user, let profileImageData = user.profileImageData, 
+                       let profileImage = UIImage(data: profileImageData) {
+                        Image(uiImage: profileImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.blue.opacity(0.3), lineWidth: 2))
+                    } else if let user = user, let profileImage = user.profileImage {
+                        Image(uiImage: profileImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.blue.opacity(0.3), lineWidth: 2))
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.blue, .purple],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 60, height: 60)
+                            
+                            Text((user?.name?.prefix(1))?.uppercased() ?? "U")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                        }
+                    }
                 }
+                .id(user?.profileImageData?.hashValue ?? user?.name?.hashValue ?? 0) // Force view refresh
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(user?.name ?? "Dynocards User")
                         .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
+                        .id(user?.name ?? "") // Force refresh when name changes
                     
                     Text("Level \(calculateLevel(points: Int(user?.totalPoints ?? 0)))")
                         .font(.subheadline)
@@ -192,7 +232,8 @@ struct SettingsView: View {
                 Spacer()
                 
                 Button("Edit") {
-                    // Edit profile
+                    editingName = user?.name ?? "User"
+                    showingEditProfile = true
                 }
                 .font(.caption)
                 .fontWeight(.medium)
@@ -350,7 +391,10 @@ struct SettingsView: View {
                     
                     Slider(value: Binding(
                         get: { Double(studyGoal) },
-                        set: { studyGoal = Int($0) }
+                        set: { 
+                            studyGoal = Int($0)
+                            saveDailyGoal()
+                        }
                     ), in: 5...50, step: 5)
                     .accentColor(.green)
                 }
@@ -372,8 +416,11 @@ struct SettingsView: View {
                     
                     Spacer()
                     
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $autoAdvanceCards)
                         .labelsHidden()
+                        .onChange(of: autoAdvanceCards) { _ in
+                            saveSettings()
+                        }
                 }
             }
         }
@@ -499,6 +546,9 @@ struct SettingsView: View {
                     
                     Toggle("", isOn: $soundEnabled)
                         .labelsHidden()
+                        .onChange(of: soundEnabled) { _ in
+                            saveSettings()
+                        }
                 }
                 
                 Divider()
@@ -520,6 +570,9 @@ struct SettingsView: View {
                     
                     Toggle("", isOn: $hapticEnabled)
                         .labelsHidden()
+                        .onChange(of: hapticEnabled) { _ in
+                            saveSettings()
+                        }
                 }
                 
                 Divider()
@@ -541,7 +594,83 @@ struct SettingsView: View {
                     
                     Toggle("", isOn: $autoPlayAudio)
                         .labelsHidden()
+                        .onChange(of: autoPlayAudio) { _ in
+                            saveSettings()
+                        }
                 }
+            }
+        }
+        .padding(20)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+    }
+    
+    private var socialShareCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Share Your Progress")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Show off your achievements")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "square.and.arrow.up.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+            }
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(.orange)
+                        .frame(width: 24)
+                    
+                    Text("Share your learning streak and achievements")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                }
+                
+                HStack(spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .foregroundColor(.yellow)
+                        .frame(width: 24)
+                    
+                    Text("Create beautiful social media cards")
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                }
+            }
+            
+            Button(action: {
+                showingSocialShare = true
+            }) {
+                HStack {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.headline)
+                    
+                    Text("Create Share Card")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [.blue, .purple],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(12)
             }
         }
         .padding(20)
@@ -599,7 +728,9 @@ struct SettingsView: View {
                 
                 // Privacy Policy
                 Button(action: {
-                    // Open privacy policy
+                    if let url = URL(string: "https://www.example.com/privacy-policy") {
+                        UIApplication.shared.open(url)
+                    }
                 }) {
                     HStack {
                         Image(systemName: "doc.text")
@@ -624,7 +755,9 @@ struct SettingsView: View {
                 
                 // Terms of Service
                 Button(action: {
-                    // Open terms of service
+                    if let url = URL(string: "https://www.example.com/terms-of-service") {
+                        UIApplication.shared.open(url)
+                    }
                 }) {
                     HStack {
                         Image(systemName: "doc.plaintext")
@@ -676,7 +809,8 @@ struct SettingsView: View {
             VStack(spacing: 12) {
                 // Help & FAQ
                 Button(action: {
-                    // Open help
+                    // Could open a help sheet or URL
+                    // For now, show an alert or you can implement a HelpView
                 }) {
                     HStack {
                         Image(systemName: "questionmark.circle")
@@ -701,7 +835,11 @@ struct SettingsView: View {
                 
                 // Contact Support
                 Button(action: {
-                    // Contact support
+                    if let url = URL(string: "mailto:support@dynocards.com?subject=Support%20Request") {
+                        if UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
                 }) {
                     HStack {
                         Image(systemName: "envelope")
@@ -726,7 +864,11 @@ struct SettingsView: View {
                 
                 // Rate App
                 Button(action: {
-                    // Rate app
+                    // Open App Store rating page
+                    // Replace "YOUR_APP_ID" with actual App Store ID when published
+                    if let url = URL(string: "https://apps.apple.com/app/idYOUR_APP_ID?action=write-review") {
+                        UIApplication.shared.open(url)
+                    }
                 }) {
                     HStack {
                         Image(systemName: "star")
@@ -863,10 +1005,18 @@ struct SettingsView: View {
     // MARK: - Helper Methods
     
     private func loadUserData() {
+        // Get fresh user data from Core Data
         user = coreDataManager.getOrCreateUser()
+        // Refresh the object to ensure we have the latest data
+        if let user = user {
+            let context = user.managedObjectContext
+            context?.refresh(user, mergeChanges: true)
+        }
     }
     
     private func loadSettings() {
+        guard let user = user else { return }
+        
         // Load notification settings
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             DispatchQueue.main.async {
@@ -874,33 +1024,84 @@ struct SettingsView: View {
             }
         }
         
-        // Load other settings from UserDefaults
-        studyGoal = UserDefaults.standard.integer(forKey: "studyGoal") != 0 ? UserDefaults.standard.integer(forKey: "studyGoal") : 10
-        soundEnabled = UserDefaults.standard.bool(forKey: "soundEnabled")
-        hapticEnabled = UserDefaults.standard.bool(forKey: "hapticEnabled")
-        autoPlayAudio = UserDefaults.standard.bool(forKey: "autoPlayAudio")
+        // Load settings from User model (preferred) or UserDefaults (fallback)
+        studyGoal = Int(user.dailyGoal) != 0 ? Int(user.dailyGoal) : (UserDefaults.standard.integer(forKey: "studyGoal") != 0 ? UserDefaults.standard.integer(forKey: "studyGoal") : 10)
+        notificationsEnabled = user.notificationsEnabled
         
-        if let reminderTimeData = UserDefaults.standard.data(forKey: "dailyReminderTime") {
-            dailyReminderTime = try! JSONDecoder().decode(Date.self, from: reminderTimeData)
+        if let reminderTime = user.studyReminderTime {
+            dailyReminderTime = reminderTime
+        } else if let reminderTimeData = UserDefaults.standard.data(forKey: "dailyReminderTime"),
+                  let decodedTime = try? JSONDecoder().decode(Date.self, from: reminderTimeData) {
+            dailyReminderTime = decodedTime
         }
+        
+        // Load audio/haptics from UserDefaults
+        soundEnabled = UserDefaults.standard.object(forKey: "soundEnabled") == nil ? true : UserDefaults.standard.bool(forKey: "soundEnabled")
+        hapticEnabled = UserDefaults.standard.object(forKey: "hapticEnabled") == nil ? true : UserDefaults.standard.bool(forKey: "hapticEnabled")
+        autoPlayAudio = UserDefaults.standard.bool(forKey: "autoPlayAudio")
+        autoAdvanceCards = UserDefaults.standard.object(forKey: "autoAdvanceCards") == nil ? true : UserDefaults.standard.bool(forKey: "autoAdvanceCards")
     }
     
     private func updateNotificationSettings() {
+        guard let user = user else { return }
+        
         if notificationsEnabled {
-            notificationService.scheduleStudyReminder(at: dailyReminderTime)
+            // Request permission if not granted
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                if settings.authorizationStatus == .notDetermined {
+                    notificationService.requestPermission()
+                }
+                
+                DispatchQueue.main.async {
+                    // Schedule reminder only if permission is granted
+                    if settings.authorizationStatus == .authorized {
+                        self.notificationService.scheduleStudyReminder(at: self.dailyReminderTime)
+                    }
+                }
+            }
         } else {
             notificationService.clearNotifications()
         }
         
-        // Save settings
-        UserDefaults.standard.set(studyGoal, forKey: "studyGoal")
-        UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled")
-        UserDefaults.standard.set(hapticEnabled, forKey: "hapticEnabled")
-        UserDefaults.standard.set(autoPlayAudio, forKey: "autoPlayAudio")
+        // Save to User model
+        user.notificationsEnabled = notificationsEnabled
+        user.studyReminderTime = dailyReminderTime
+        coreDataManager.save()
         
+        // Also save to UserDefaults for compatibility
         if let reminderTimeData = try? JSONEncoder().encode(dailyReminderTime) {
             UserDefaults.standard.set(reminderTimeData, forKey: "dailyReminderTime")
         }
+        
+        // Update badge count
+        notificationService.updateBadgeCount()
+    }
+    
+    private func saveDailyGoal() {
+        guard let user = user else { return }
+        user.dailyGoal = Int16(studyGoal)
+        coreDataManager.save()
+        
+        // Also save to UserDefaults for compatibility
+        UserDefaults.standard.set(studyGoal, forKey: "studyGoal")
+        
+        // Reload user data to update UI
+        loadUserData()
+    }
+    
+    private func saveSettings() {
+        // Save audio/haptics to UserDefaults
+        UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled")
+        UserDefaults.standard.set(hapticEnabled, forKey: "hapticEnabled")
+        UserDefaults.standard.set(autoPlayAudio, forKey: "autoPlayAudio")
+        UserDefaults.standard.set(autoAdvanceCards, forKey: "autoAdvanceCards")
+    }
+    
+    private func saveProfile() {
+        guard let user = user else { return }
+        user.name = editingName.isEmpty ? "User" : editingName
+        coreDataManager.save()
+        loadUserData()
     }
     
     private func deleteAllData() {
@@ -999,6 +1200,158 @@ struct AboutView: View {
             .navigationTitle("About")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+}
+
+// MARK: - Edit Profile View
+
+struct EditProfileView: View {
+    let user: User?
+    @Binding var name: String
+    let onSave: () -> Void
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var coreDataManager = CoreDataManager.shared
+    @State private var selectedImage: UIImage?
+    @State private var editedName: String = ""
+    @FocusState private var isNameFieldFocused: Bool
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Profile Picture Section
+                    VStack(spacing: 20) {
+                        Text("Profile Picture")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                        
+                        if #available(iOS 16.0, *) {
+                            ImprovedImagePickerView(selectedImage: $selectedImage)
+                        } else {
+                            ImprovedLegacyImagePickerView(selectedImage: $selectedImage)
+                        }
+                    }
+                    .padding(.top, 20)
+                    
+                    // Profile Information Section
+                    VStack(spacing: 16) {
+                        Text("Profile Information")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Name")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 4)
+                            
+                            TextField("Enter your name", text: $editedName)
+                                .textFieldStyle(.plain)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(.systemGray6))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isNameFieldFocused ? Color.blue : Color(.systemGray4), lineWidth: isNameFieldFocused ? 2 : 1)
+                                )
+                                .focused($isNameFieldFocused)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled(false)
+                                .submitLabel(.done)
+                                .onSubmit {
+                                    isNameFieldFocused = false
+                                }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    // Save Button
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            saveProfile()
+                        }) {
+                            Text("Save")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.blue, .purple],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(12)
+                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.primary)
+                }
+            }
+            .onAppear {
+                // Initialize editedName with current user name
+                if let userName = user?.name, !userName.isEmpty {
+                    editedName = userName
+                } else {
+                    editedName = name.isEmpty ? "" : name
+                }
+                
+                // Load existing profile image if available
+                if let user = user, let profileImage = user.profileImage {
+                    selectedImage = profileImage
+                }
+            }
+        }
+    }
+    
+    private func saveProfile() {
+        guard let user = user else { return }
+        
+        // Update name from editedName
+        let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        name = trimmedName.isEmpty ? "User" : trimmedName
+        user.name = name
+        
+        // Update profile image - this should properly save to Core Data
+        if let image = selectedImage {
+            user.setProfileImage(image)
+        } else {
+            // If no image selected, keep existing or clear if needed
+            // For now, we'll keep existing image if selectedImage is nil
+        }
+        
+        // Save to Core Data
+        do {
+            try user.managedObjectContext?.save()
+            coreDataManager.save()
+        } catch {
+            print("Error saving profile: \(error)")
+        }
+        
+        // Call the callback to refresh parent view
+        onSave()
+        dismiss()
     }
 }
 
